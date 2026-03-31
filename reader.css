@@ -1,0 +1,518 @@
+/* ========================================
+   论文阅读功能 — Apple 学术风格
+   ======================================== */
+
+/* --- 拖放区Reader变体 --- */
+.drop-icon-reader {
+  background: rgba(255, 59, 48, 0.08);
+  color: var(--color-red);
+}
+
+.drop-zone:hover .drop-icon-reader {
+  transform: translateY(-2px);
+}
+
+/* --- 处理进度 --- */
+.reader-loading-section {
+  padding: 60px 0;
+}
+
+.reader-loading-section.hidden { display: none; }
+
+.reader-progress-wrapper {
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+}
+
+.reader-progress-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 20px;
+}
+
+.reader-progress-header i {
+  font-size: 20px;
+  color: var(--color-accent);
+}
+
+.reader-progress-bar {
+  height: 4px;
+  background: var(--color-border-light);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.reader-progress-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.reader-progress-text {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+/* --- 阅读器工具栏 --- */
+.reader-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+
+.reader-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reader-count {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reader-count i {
+  font-size: 16px;
+  color: var(--color-accent);
+}
+
+.reader-count strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.reader-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-more-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+.add-more-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+
+.add-more-btn .file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* --- 结果区 --- */
+.reader-results-section {
+  padding-top: 32px;
+  padding-bottom: 60px;
+}
+
+.reader-results-section.hidden { display: none; }
+
+.reader-report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* --- 论文报告卡片 --- */
+.report-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+  animation: cardFadeIn 0.5s ease both;
+}
+
+.report-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.report-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.report-card-number {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.report-card-title-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.report-card-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+}
+
+.report-card-meta {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.report-card-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.report-card-meta-item i {
+  font-size: 12px;
+}
+
+.report-card-status {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+/* 卡片头部操作区 */
+.report-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.report-pdf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+}
+
+.report-pdf-link i {
+  font-size: 14px;
+  color: var(--color-red);
+}
+
+.report-pdf-link:hover {
+  border-color: var(--color-red);
+  color: var(--color-red);
+  background: rgba(255, 59, 48, 0.05);
+}
+
+.status-processing {
+  background: rgba(0, 113, 227, 0.08);
+  color: var(--color-accent);
+}
+
+.status-done {
+  background: rgba(52, 199, 89, 0.08);
+  color: var(--color-green);
+}
+
+.status-error {
+  background: rgba(255, 59, 48, 0.08);
+  color: var(--color-red);
+}
+
+/* --- 报告内容区 --- */
+.report-card-body {
+  padding: 24px 28px;
+}
+
+.report-section {
+  margin-bottom: 24px;
+}
+
+.report-section:last-child {
+  margin-bottom: 0;
+}
+
+.report-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.report-section-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.report-section-icon.icon-question {
+  background: rgba(0, 113, 227, 0.08);
+  color: var(--color-accent);
+}
+
+.report-section-icon.icon-method {
+  background: rgba(175, 82, 222, 0.08);
+  color: var(--color-purple);
+}
+
+.report-section-icon.icon-conclusion {
+  background: rgba(52, 199, 89, 0.08);
+  color: var(--color-green);
+}
+
+.report-section-icon.icon-innovation {
+  background: rgba(255, 149, 0, 0.08);
+  color: var(--color-orange);
+}
+
+.report-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-tertiary);
+}
+
+.report-section-content {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--color-text-secondary);
+  padding-left: 36px;
+}
+
+.report-section-content p {
+  margin-bottom: 6px;
+}
+
+.report-section-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* 方法详情区域 */
+.method-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  padding-left: 36px;
+}
+
+.method-detail-item {
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+}
+
+.method-detail-item .label {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 3px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.method-detail-item .value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.method-detail-item .value .design-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 2px;
+}
+
+.design-tag-yes {
+  background: rgba(52, 199, 89, 0.12);
+  color: #248A3D;
+}
+
+.design-tag-no {
+  background: rgba(142, 142, 147, 0.1);
+  color: #636366;
+}
+
+/* 论文报告中的方法标签列表 */
+.report-method-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding-left: 36px;
+}
+
+/* 处理中骨架屏 */
+.report-skeleton {
+  padding: 24px 28px;
+}
+
+.skeleton-line {
+  height: 14px;
+  background: linear-gradient(90deg, var(--color-border-light) 25%, var(--color-bg) 50%, var(--color-border-light) 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  animation: skeletonShimmer 1.5s infinite;
+}
+
+.skeleton-line:nth-child(1) { width: 85%; }
+.skeleton-line:nth-child(2) { width: 70%; }
+.skeleton-line:nth-child(3) { width: 90%; }
+.skeleton-line:nth-child(4) { width: 60%; }
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* --- 报告卡片展开/收起 --- */
+.report-card-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  border: none;
+  border-top: 1px solid var(--color-border-light);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+}
+
+.report-card-toggle:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+
+.report-card-toggle i {
+  transition: transform 0.3s ease;
+}
+
+.report-card.collapsed .report-card-body {
+  display: none;
+}
+
+.report-card.collapsed .report-card-toggle i {
+  transform: rotate(180deg);
+}
+
+/* --- 响应式 --- */
+@media (max-width: 768px) {
+  .reader-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reader-toolbar-right {
+    flex-direction: column;
+  }
+
+  .report-card-header {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .report-card-actions {
+    flex-direction: row;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .report-card-body {
+    padding: 20px;
+  }
+
+  .report-section-content {
+    padding-left: 0;
+  }
+
+  .method-detail-grid {
+    grid-template-columns: 1fr;
+    padding-left: 0;
+  }
+
+  .report-method-tags {
+    padding-left: 0;
+  }
+}

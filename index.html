@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学术论文工具 — 筛选与阅读</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="reader.css">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    }
+  </script>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <div class="nav-left">
+        <div class="nav-brand">
+          <div class="brand-icon">
+            <i class="ri-article-line"></i>
+          </div>
+          <div class="brand-text">
+            <h1>Paper Tools</h1>
+            <p>筛选 · 阅读 · 分析</p>
+          </div>
+        </div>
+        <div class="nav-tabs">
+          <button class="nav-tab active" data-tab="filter">
+            <i class="ri-filter-3-line"></i> 论文筛选
+          </button>
+          <button class="nav-tab" data-tab="reader">
+            <i class="ri-book-read-line"></i> 论文阅读
+          </button>
+        </div>
+      </div>
+      <div id="statsBar" class="stats-bar hidden">
+        <div class="stat-item">
+          <span class="stat-label">论文总数</span>
+          <span id="totalCount" class="stat-value">0</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-label">方法匹配</span>
+          <span id="designCount" class="stat-value stat-value-accent">0</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-label">命中率</span>
+          <span id="hitRate" class="stat-value">0%</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ==================== 论文筛选页 ==================== -->
+  <main id="filterPage" class="main-content page-content active">
+    <!-- 上传区域 -->
+    <section id="uploadSection" class="upload-section">
+      <div class="upload-hero">
+        <p class="upload-eyebrow">学术论文 · 智能筛选</p>
+        <h2 class="upload-title" id="heroTitle">识别学科研究方法</h2>
+        <p class="upload-desc" id="heroDesc">
+          上传从 IEEE Xplore、Scopus、Web of Science 等平台导出的 CSV 文件，<br>
+          系统将根据所选学科自动分析摘要与关键词，识别相关研究方法并分类标注。
+        </p>
+      </div>
+
+      <!-- 学科选择器 -->
+      <div class="discipline-section">
+        <div class="discipline-section-title">选择学科方向</div>
+        <div id="disciplineGrid" class="discipline-grid">
+          <!-- 由 main.js 动态生成 -->
+        </div>
+        <div id="selectedHint" class="discipline-selected-hint">
+          <span class="hint-text">✓ 已选择: <strong id="selectedName">—</strong> — 包含 <strong id="selectedCount">0</strong> 种研究方法</span>
+        </div>
+      </div>
+
+      <div id="dropZone" class="drop-zone disabled">
+        <input type="file" id="fileInput" accept=".csv" class="file-input">
+        <div class="drop-zone-content">
+          <div class="drop-icon">
+            <i class="ri-upload-cloud-2-line"></i>
+          </div>
+          <p class="drop-title" id="dropTitle">请先选择学科方向</p>
+          <p class="drop-hint" id="dropHint">选择学科后即可上传 CSV 文件</p>
+        </div>
+      </div>
+
+      <!-- 功能卡片 -->
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon feature-icon-blue">
+            <i class="ri-search-eye-line"></i>
+          </div>
+          <h3>摘要深度分析</h3>
+          <p id="feat1Desc">扫描论文摘要中的研究方法术语与描述模式</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon feature-icon-purple">
+            <i class="ri-price-tag-3-line"></i>
+          </div>
+          <h3>多维度关键词匹配</h3>
+          <p id="feat2Desc">结合作者关键词与索引术语，交叉验证研究方法</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon feature-icon-green">
+            <i class="ri-bookmark-3-line"></i>
+          </div>
+          <h3>智能分类标签</h3>
+          <p id="feat3Desc">自动标注匹配到的研究方法类型</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 加载动画 -->
+    <section id="loadingSection" class="loading-section hidden">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">正在分析论文数据…</p>
+    </section>
+
+    <!-- 筛选工具栏 -->
+    <section id="filterSection" class="filter-section hidden">
+      <div class="filter-bar">
+        <div class="filter-left">
+          <span class="filter-label">
+            <i class="ri-filter-3-line"></i> 方法筛选
+          </span>
+          <div id="tagFilters" class="tag-filters">
+            <!-- 动态生成 -->
+          </div>
+        </div>
+        <div class="filter-right">
+          <div class="search-wrapper">
+            <i class="ri-search-line search-icon"></i>
+            <input type="text" id="searchInput" placeholder="搜索标题或作者…" class="search-input">
+          </div>
+          <button id="exportBtn" class="export-btn">
+            <i class="ri-download-2-line"></i>
+            导出 CSV
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 论文列表 -->
+    <section id="resultsSection" class="results-section hidden">
+      <div id="paperList" class="paper-list">
+        <!-- 动态生成 -->
+      </div>
+      <div id="noResults" class="no-results hidden">
+        <i class="ri-file-search-line"></i>
+        <p>没有找到匹配的论文</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== 论文阅读页 ==================== -->
+  <main id="readerPage" class="main-content page-content">
+    <!-- 阅读器上传区 -->
+    <section id="readerUploadSection" class="upload-section">
+      <div class="upload-hero">
+        <p class="upload-eyebrow">学术论文 · 深度阅读</p>
+        <h2 class="upload-title">PDF 论文阅读报告</h2>
+        <p class="upload-desc">
+          批量上传论文 PDF 文件，系统将自动提取全文并分析，<br>
+          生成包含研究问题、方法、结论和创新点的结构化阅读报告。
+        </p>
+      </div>
+
+      <div id="pdfDropZone" class="drop-zone">
+        <input type="file" id="pdfFileInput" accept=".pdf" multiple class="file-input">
+        <div class="drop-zone-content">
+          <div class="drop-icon drop-icon-reader">
+            <i class="ri-file-pdf-2-line"></i>
+          </div>
+          <p class="drop-title">拖放 PDF 文件至此处</p>
+          <p class="drop-hint">支持批量上传，可选择多个文件</p>
+        </div>
+      </div>
+
+      <!-- 功能特点 -->
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon feature-icon-blue">
+            <i class="ri-questionnaire-line"></i>
+          </div>
+          <h3>研究问题提取</h3>
+          <p>从引言和摘要中识别论文的核心研究问题与目标</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon feature-icon-purple">
+            <i class="ri-flask-line"></i>
+          </div>
+          <h3>研究方法分析</h3>
+          <p>识别多学科研究方法、实验设计、被试数量等关键信息</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon feature-icon-green">
+            <i class="ri-lightbulb-flash-line"></i>
+          </div>
+          <h3>结论与创新点</h3>
+          <p>自动提取研究结论、主要发现和学术贡献</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PDF 处理进度 -->
+    <section id="readerLoadingSection" class="reader-loading-section hidden">
+      <div class="reader-progress-wrapper">
+        <div class="reader-progress-header">
+          <i class="ri-file-search-line"></i>
+          <span>正在解析论文…</span>
+        </div>
+        <div class="reader-progress-bar">
+          <div id="readerProgressFill" class="reader-progress-fill"></div>
+        </div>
+        <p id="readerProgressText" class="reader-progress-text">准备中…</p>
+      </div>
+    </section>
+
+    <!-- 阅读报告区 -->
+    <section id="readerResultsSection" class="reader-results-section hidden">
+      <!-- 工具栏 -->
+      <div class="reader-toolbar">
+        <div class="reader-toolbar-left">
+          <span class="reader-count">
+            <i class="ri-file-list-3-line"></i>
+            已分析 <strong id="readerPaperCount">0</strong> 篇论文
+          </span>
+        </div>
+        <div class="reader-toolbar-right">
+          <button id="downloadReportBtn" class="export-btn">
+            <i class="ri-download-2-line"></i>
+            下载阅读报告
+          </button>
+          <button id="addMorePdfBtn" class="add-more-btn">
+            <i class="ri-add-line"></i>
+            继续添加
+            <input type="file" id="addMorePdfInput" accept=".pdf" multiple class="file-input">
+          </button>
+        </div>
+      </div>
+
+      <!-- 论文报告列表 -->
+      <div id="readerReportList" class="reader-report-list">
+        <!-- 动态生成 -->
+      </div>
+    </section>
+  </main>
+
+  <!-- 论文详情弹窗 -->
+  <div id="detailModal" class="modal-overlay hidden">
+    <div class="modal-backdrop" id="modalOverlay"></div>
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>论文详情</h3>
+        <button id="closeModal" class="modal-close">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+      <div id="modalContent" class="modal-body">
+        <!-- 动态填充 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 页脚 -->
+  <footer class="site-footer">
+    <p>由 <a href="https://REDACTED/" style="color: #8A2BE2;" target="_blank">With</a> 通过自然语言生成</p>
+  </footer>
+
+  <script type="module" src="main.js"></script>
+  <script type="module" src="reader.js"></script>
+</body>
+</html>
