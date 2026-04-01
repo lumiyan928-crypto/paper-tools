@@ -537,6 +537,14 @@ body {
   transform: translateY(0);
 }
 
+.export-btn-html {
+  background: var(--color-accent);
+}
+
+.export-btn-html:hover {
+  background: var(--color-accent-hover);
+}
+
 /* --- 论文列表 --- */
 .results-section {
   padding-top: 16px;

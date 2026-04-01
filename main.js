@@ -455,6 +455,223 @@ function exportResults() {
   URL.revokeObjectURL(url);
 }
 
+// ========== 导出 HTML ==========
+function exportHTML() {
+  if (filteredPapers.length === 0) return;
+
+  const discLabel = currentDiscipline ? currentDiscipline.label : '未知学科';
+  const total = allPapers.length;
+  const matched = allPapers.filter(p => p._analysis.isDesignMethod).length;
+  const hitRate = total > 0 ? (matched / total * 100).toFixed(1) + '%' : '0%';
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const timeStr = new Date().toLocaleString('zh-CN');
+
+  const papersHTML = filteredPapers.map((paper, idx) => {
+    const analysis = paper._analysis;
+    const title = paper['Document Title'] || '未知标题';
+    const authors = paper['Authors'] || '未知作者';
+    const year = paper['Publication Year'] || '';
+    const abstract = paper['Abstract'] || '';
+    const doi = paper['DOI'] || '';
+    const pdfLink = paper['PDF Link'] || '';
+
+    const tagsHTML = analysis.methods.map(m =>
+      `<span class="method-tag ${m.method.tagClass}">${escapeHTML(m.method.label)}</span>`
+    ).join('');
+
+    const maxConf = Math.max(...analysis.methods.map(m => m.confidence));
+    const confClass = maxConf >= 0.7 ? 'confidence-high' : maxConf >= 0.4 ? 'confidence-medium' : 'confidence-low';
+    const confLabel = maxConf >= 0.7 ? '高置信度' : maxConf >= 0.4 ? '中置信度' : '低置信度';
+
+    const shortAbstract = abstract.length > 300
+      ? abstract.substring(0, 300) + '…'
+      : abstract;
+
+    const authorList = authors.split(';').map(a => a.trim()).filter(Boolean);
+    const displayAuthors = authorList.length > 3
+      ? authorList.slice(0, 3).join(', ') + ` 等 ${authorList.length} 人`
+      : authorList.join(', ');
+
+    let linksHTML = '';
+    if (doi) {
+      linksHTML += `<a href="https://doi.org/${escapeHTML(doi)}" target="_blank" class="paper-link-btn">DOI</a>`;
+    }
+    if (pdfLink) {
+      linksHTML += `<a href="${escapeHTML(pdfLink)}" target="_blank" class="paper-link-btn">PDF</a>`;
+    }
+
+    return `
+      <div class="paper-card">
+        <div class="paper-index">${idx + 1}</div>
+        <div class="paper-body">
+          <div class="paper-title">${escapeHTML(title)}</div>
+          <div class="paper-meta">${escapeHTML(displayAuthors)}${year ? ' · ' + year : ''}</div>
+          <div class="paper-tags">${tagsHTML}</div>
+          <div class="paper-abstract">${escapeHTML(shortAbstract)}</div>
+          <div class="paper-footer">
+            <div class="confidence-indicator">
+              <span class="confidence-label">${confLabel}</span>
+              <div class="confidence-bar">
+                <div class="confidence-fill ${confClass}" style="width: ${maxConf * 100}%"></div>
+              </div>
+            </div>
+            <span class="paper-evidence-count">${analysis.methods.reduce((s, m) => s + m.evidence.length, 0)} 条证据</span>
+          </div>
+        </div>
+        ${linksHTML ? `<div class="paper-links">${linksHTML}</div>` : ''}
+      </div>`;
+  }).join('\n');
+
+  // 方法标签统计
+  const tagStats = {};
+  filteredPapers.forEach(p => {
+    p._analysis.methods.forEach(m => {
+      tagStats[m.method.label] = (tagStats[m.method.label] || 0) + 1;
+    });
+  });
+  const tagStatsHTML = Object.entries(tagStats)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, count]) => `<span class="tag-btn">${label} <span class="count">${count}</span></span>`)
+    .join('');
+
+  const htmlContent = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${discLabel}论文筛选结果 — ${dateStr}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --color-bg: #FAFAFA; --color-surface: #FFFFFF;
+    --color-border: #E5E5E5; --color-border-light: #F0F0F0;
+    --color-text-primary: #1D1D1F; --color-text-secondary: #6E6E73; --color-text-tertiary: #999;
+    --color-accent: #0071E3; --color-green: #34C759; --color-orange: #FF9500;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-serif: 'Noto Serif SC', 'Georgia', serif;
+  }
+  body { font-family: var(--font-sans); background: var(--color-bg); color: var(--color-text-primary); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .container { max-width: 980px; margin: 0 auto; padding: 0 22px; }
+
+  /* 报告头 */
+  .report-header { text-align: center; padding: 60px 22px 40px; border-bottom: 1px solid var(--color-border-light); margin-bottom: 32px; }
+  .report-header .eyebrow { font-size: 14px; font-weight: 500; color: var(--color-accent); letter-spacing: 0.04em; margin-bottom: 12px; }
+  .report-header h1 { font-family: var(--font-serif); font-size: 36px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 16px; }
+  .report-header .desc { font-size: 14px; color: var(--color-text-tertiary); }
+
+  /* 统计栏 */
+  .stats-bar { display: flex; align-items: center; justify-content: center; gap: 32px; padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: 12px; margin-bottom: 24px; }
+  .stat-item { display: flex; align-items: baseline; gap: 6px; }
+  .stat-label { font-size: 12px; color: var(--color-text-tertiary); }
+  .stat-value { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .stat-value-accent { color: var(--color-accent); }
+  .stat-divider { width: 1px; height: 24px; background: var(--color-border); }
+
+  /* 标签栏 */
+  .tag-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; padding: 16px 20px; background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: 12px; }
+  .tag-btn { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid var(--color-border); background: transparent; color: var(--color-text-secondary); }
+  .tag-btn .count { opacity: 0.5; margin-left: 4px; }
+
+  /* 论文卡片 */
+  .paper-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 40px; }
+  .paper-card { display: flex; align-items: flex-start; gap: 20px; padding: 20px 24px; background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: 12px; }
+  .paper-index { width: 32px; height: 32px; border-radius: 50%; background: var(--color-bg); border: 1px solid var(--color-border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--color-text-tertiary); flex-shrink: 0; margin-top: 2px; }
+  .paper-body { flex: 1; min-width: 0; }
+  .paper-title { font-family: var(--font-serif); font-size: 16px; font-weight: 600; line-height: 1.45; margin-bottom: 6px; }
+  .paper-meta { font-size: 13px; color: var(--color-text-tertiary); margin-bottom: 10px; }
+  .paper-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .paper-abstract { font-size: 13px; line-height: 1.65; color: var(--color-text-secondary); margin-bottom: 12px; }
+  .paper-footer { display: flex; align-items: center; gap: 16px; }
+  .paper-links { display: flex; gap: 6px; flex-shrink: 0; margin-top: 2px; }
+  .paper-link-btn { padding: 4px 12px; border-radius: 8px; border: 1px solid var(--color-border); font-size: 12px; color: var(--color-text-tertiary); text-decoration: none; transition: all 0.2s; }
+  .paper-link-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+  /* 置信度 */
+  .confidence-indicator { display: flex; align-items: center; gap: 8px; }
+  .confidence-label { font-size: 11px; color: var(--color-text-tertiary); }
+  .confidence-bar { width: 80px; height: 3px; background: var(--color-border-light); border-radius: 2px; overflow: hidden; }
+  .confidence-fill { height: 100%; border-radius: 2px; }
+  .confidence-high { background: var(--color-green); }
+  .confidence-medium { background: var(--color-orange); }
+  .confidence-low { background: #D1D1D6; }
+  .paper-evidence-count { font-size: 11px; color: var(--color-text-tertiary); }
+
+  /* 方法标签 8色 */
+  .method-tag { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 12px; white-space: nowrap; }
+  .method-tag-0 { background: rgba(52,199,89,0.1); color: #1B7A32; }
+  .method-tag-1 { background: rgba(255,149,0,0.1); color: #C93400; }
+  .method-tag-2 { background: rgba(175,82,222,0.1); color: #8944AB; }
+  .method-tag-3 { background: rgba(0,113,227,0.1); color: #0055AA; }
+  .method-tag-4 { background: rgba(255,59,48,0.1); color: #D70015; }
+  .method-tag-5 { background: rgba(90,200,250,0.1); color: #0A7ACA; }
+  .method-tag-6 { background: rgba(255,100,130,0.1); color: #C44060; }
+  .method-tag-7 { background: rgba(48,176,199,0.1); color: #1A8A9E; }
+
+  /* 页脚 */
+  .footer { text-align: center; padding: 32px; font-size: 13px; color: var(--color-text-tertiary); border-top: 1px solid var(--color-border-light); margin-top: 16px; }
+  .footer a { color: #8A2BE2; text-decoration: none; }
+
+  @media print {
+    body { background: white; }
+    .paper-card { break-inside: avoid; border: 1px solid #eee; }
+  }
+  @media (max-width: 768px) {
+    .paper-card { flex-direction: column; gap: 12px; padding: 16px; }
+    .paper-index { display: none; }
+    .stats-bar { flex-wrap: wrap; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="report-header">
+  <p class="eyebrow">${escapeHTML(discLabel)} · 论文筛选结果</p>
+  <h1>研究方法匹配报告</h1>
+  <p class="desc">生成时间: ${timeStr} · 共筛选 ${filteredPapers.length} 篇论文</p>
+</div>
+
+<div class="container">
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-label">论文总数</span>
+      <span class="stat-value">${total}</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-label">方法匹配</span>
+      <span class="stat-value stat-value-accent">${matched}</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-label">命中率</span>
+      <span class="stat-value">${hitRate}</span>
+    </div>
+  </div>
+
+  <div class="tag-bar">
+    ${tagStatsHTML}
+  </div>
+
+  <div class="paper-list">
+    ${papersHTML}
+  </div>
+</div>
+
+<div class="footer">
+  <p>由 <a href="https://REDACTED/" target="_blank">Paper Tools</a> 生成</p>
+</div>
+</body>
+</html>`;
+
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${discLabel}论文筛选结果_${dateStr}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ========== 工具函数 ==========
 function escapeHTML(str) {
   const div = document.createElement('div');
@@ -547,6 +764,7 @@ function init() {
   const dropZone = document.getElementById('dropZone');
   const searchInput = document.getElementById('searchInput');
   const exportBtn = document.getElementById('exportBtn');
+  const exportHtmlBtn = document.getElementById('exportHtmlBtn');
   const closeModal = document.getElementById('closeModal');
   const modalOverlay = document.getElementById('modalOverlay');
 
@@ -591,6 +809,7 @@ function init() {
 
   // 导出
   exportBtn.addEventListener('click', exportResults);
+  exportHtmlBtn.addEventListener('click', exportHTML);
 
   // 弹窗关闭
   closeModal.addEventListener('click', () => {
